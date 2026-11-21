@@ -1,0 +1,2 @@
+[2026-11-20 15:41:02] DEBUG BookingService: taken=18 seats=18
+[2026-11-20 15:41:03] ERROR SeatsNotAvailableException: Y free=0

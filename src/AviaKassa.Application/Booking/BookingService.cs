@@ -12,9 +12,13 @@ public sealed class BookingService : IBookingService
     {
         var fare = await _db.FareClasses.FirstAsync(c => c.Id == req.FareClassId, ct);
 
+                DateTimeOffset nowUtc = DateTimeOffset.UtcNow;               //1)
+
         int taken = await _db.Bookings
-            .Where(b => b.FareClassId == fare.Id)
-            .SumAsync(b => b.Passengers.Count, ct);
+            .Where(b => b.FareClassId == fare.Id
+                     && (b.Status == BookingStatus.Paid
+                         || (b.Status == BookingStatus.Held && b.TimeLimitUtc > nowUtc)))
+            .SumAsync(b => b.Passengers.Count, ct);  
 
         if (taken + req.Passengers.Count > fare.SeatsTotal)
             throw new SeatsNotAvailableException(fare.Code, 0);
@@ -24,9 +28,8 @@ public sealed class BookingService : IBookingService
             Id = Guid.NewGuid(),
             FareClassId = fare.Id,
             Status = BookingStatus.Held,
-            CreatedUtc = DateTime.Now,
-            TimeLimitUtc = DateTime.Now.AddHours(2)
-        };
+            CreatedUtc = nowUtc,                                            //2)
+            TimeLimitUtc = nowUtc.AddHours(2)        };
         _db.Bookings.Add(booking);
         await _db.SaveChangesAsync(ct);
         return booking;
